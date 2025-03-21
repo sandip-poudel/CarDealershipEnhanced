@@ -1,0 +1,97 @@
+/* Base styles for dark mode */
+.root {
+    -fx-background-color: #333333;
+    -fx-text-fill: white;
+}
+
+/* Text fields */
+.text-field {
+    -fx-background-color: #444444;
+    -fx-text-fill: white;
+    -fx-control-inner-background: #444444;
+}
+
+/* Combo boxes */
+.combo-box {
+    -fx-background-color: #444444;
+    -fx-text-fill: white;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: #444444;
+    -fx-text-fill: white;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #555555;
+}
+
+.combo-box-popup .list-cell {
+    -fx-background-color: #555555;
+    -fx-text-fill: white;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #666666;
+}
+
+/* Buttons */
+.button {
+    -fx-background-color: #444444;
+    -fx-text-fill: white;
+}
+
+.button:hover {
+    -fx-background-color: #555555;
+}
+
+/* Labels */
+.label {
+    -fx-text-fill: white;
+}
+
+/* Text area (inventory display) */
+.text-area {
+    -fx-control-inner-background: #222222;
+    -fx-text-fill: white;
+}
+
+.text-area .content {
+    -fx-background-color: #222222;
+}
+
+/* Split panes */
+.split-pane {
+    -fx-background-color: #333333;
+}
+
+.split-pane:horizontal > .split-pane-divider,
+.split-pane:vertical > .split-pane-divider {
+    -fx-background-color: #444444;
+}
+
+/* Scroll bars */
+.scroll-bar {
+    -fx-background-color: #444444;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #666666;
+}
+
+/* Dialogs */
+.dialog-pane {
+    -fx-background-color: #333333;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #006666;
+}
+
+.dialog-pane .content {
+    -fx-background-color: #333333;
+}
+
+.dialog-pane .button-bar {
+    -fx-background-color: #333333;
+}

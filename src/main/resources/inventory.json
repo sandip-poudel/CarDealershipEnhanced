@@ -1,0 +1,74 @@
+{
+  "car_inventory" : [ {
+    "price" : 27000.0,
+    "vehicle_model" : "Focus",
+    "vehicle_type" : "suv",
+    "is_rented" : false,
+    "dealership_id" : "485",
+    "vehicle_id" : "12a",
+    "vehicle_manufacturer" : "Ford",
+    "acquisition_date" : 1742598491102
+  }, {
+    "price" : 21250.0,
+    "vehicle_model" : "Range Rover",
+    "vehicle_type" : "suv",
+    "is_rented" : false,
+    "dealer_name" : "Wacky Bob’s Automall",
+    "dealership_id" : "485",
+    "vehicle_id" : "848432",
+    "vehicle_manufacturer" : "Land Rover",
+    "acquisition_date" : 1741967779409
+  }, {
+    "price" : 36600.0,
+    "vehicle_model" : "G70",
+    "vehicle_type" : "sedan",
+    "is_rented" : false,
+    "dealer_name" : "Wacky Bob’s Automall",
+    "dealership_id" : "485",
+    "vehicle_id" : "151e5dde",
+    "vehicle_manufacturer" : "Genesis",
+    "acquisition_date" : 1741967779410
+  }, {
+    "price" : 22330.0,
+    "vehicle_model" : "Miata",
+    "vehicle_type" : "sports car",
+    "is_rented" : false,
+    "dealer_name" : "Wacky Bob’s Automall",
+    "dealership_id" : "485",
+    "vehicle_id" : "ern222",
+    "vehicle_manufacturer" : "Mazda",
+    "acquisition_date" : 1741967779410
+  }, {
+    "price" : 42000.0,
+    "vehicle_model" : "Explorer",
+    "vehicle_type" : "suv",
+    "is_rented" : false,
+    "dealership_id" : "84572",
+    "vehicle_id" : "48600",
+    "vehicle_manufacturer" : "Ford",
+    "acquisition_date" : 1742600404202
+  }, {
+    "rental_end_date" : 1742619600000,
+    "rental_start_date" : 1742533200000,
+    "price" : 22600.0,
+    "vehicle_model" : "Tundra",
+    "vehicle_type" : "pickup",
+    "is_rented" : false,
+    "dealer_name" : "Wacky Bob’s Automall",
+    "dealership_id" : "485",
+    "vehicle_id" : "52523",
+    "vehicle_manufacturer" : "Toyota",
+    "acquisition_date" : 1741967779410
+  }, {
+    "rental_end_date" : 1742878800000,
+    "rental_start_date" : 1742533200000,
+    "price" : 48000.0,
+    "vehicle_model" : "Tacoma",
+    "vehicle_type" : "suv",
+    "is_rented" : false,
+    "dealership_id" : "84572",
+    "vehicle_id" : "1052",
+    "vehicle_manufacturer" : "Toyota",
+    "acquisition_date" : 1741967801739
+  } ]
+}
