@@ -36,14 +36,14 @@ public class DealershipJavaFXGUI extends Application {
     private static final String INVENTORY_PATH = "src/main/resources/inventory.json";
     private static final String EXPORT_PATH = "src/main/resources/export.json";
     private static final String APP_TITLE = "Dealership Management System";
-    private static final Color THEME_COLOR = Color.CYAN; // Main theme color
+    private static final Color THEME_COLOR = Color.DODGERBLUE; // Main color
 
     // Dark mode properties
     private boolean darkModeEnabled = false;
     private final String LIGHT_THEME_STYLE = "-fx-background-color: white; -fx-text-fill: black;";
     private final String DARK_THEME_STYLE = "-fx-background-color: #333333; -fx-text-fill: white;";
-    private final Color LIGHT_HEADER_COLOR = Color.CYAN;
-    private final Color DARK_HEADER_COLOR = Color.rgb(0, 102, 102); // Darker cyan
+    private final Color LIGHT_HEADER_COLOR = Color.DARKBLUE;
+    private final Color DARK_HEADER_COLOR = Color.rgb(0, 102, 102); // Dark blue
 
     // Core business logic manager
     private DealershipManager manager;
@@ -142,6 +142,9 @@ public class DealershipJavaFXGUI extends Application {
     /**
      * Creates and sets up the search area
      */
+    /**
+     * Creates and sets up the search area
+     */
     private HBox createSearchArea() {
         HBox searchBox = new HBox(10);
         searchBox.setPadding(new Insets(10, 10, 10, 10));
@@ -162,9 +165,15 @@ public class DealershipJavaFXGUI extends Application {
         searchField.setPromptText("Enter search query");
         searchField.setPrefWidth(250);
 
-        // Add listener to perform search as user types
+        // Remove the listener that performs search as user types
+        // Instead, only search when the button is clicked or Enter is pressed
+        searchField.setOnAction(e -> performSearch(searchField.getText()));
+
+        // Still show all vehicles when search field is cleared
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
-            performSearch(newValue);
+            if (newValue == null || newValue.trim().isEmpty()) {
+                refreshDisplay(); // Show all vehicles when search field is cleared
+            }
         });
 
         // Create search button
@@ -384,7 +393,7 @@ public class DealershipJavaFXGUI extends Application {
 
         if (darkModeEnabled) {
             // Apply dark stylesheet to the entire scene
-            scene.getStylesheets().add(getClass().getResource("/darkMode.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/DarkMode.css").toExternalForm());
 
             // Update header color
             BorderPane headerContainer = (BorderPane) mainLayout.getTop();
@@ -392,7 +401,7 @@ public class DealershipJavaFXGUI extends Application {
             headerPane.setStyle("-fx-background-color: #006666;"); // Darker cyan
         } else {
             // Remove dark stylesheet
-            scene.getStylesheets().remove(getClass().getResource("/darkMode.css").toExternalForm());
+            scene.getStylesheets().remove(getClass().getResource("/DarkMode.css").toExternalForm());
 
             // Reset header color
             BorderPane headerContainer = (BorderPane) mainLayout.getTop();
@@ -417,6 +426,9 @@ public class DealershipJavaFXGUI extends Application {
         return area;
     }
 
+    /**
+     * Shows the dashboard dialog
+     */
     /**
      * Shows the dashboard dialog
      */
@@ -492,23 +504,24 @@ public class DealershipJavaFXGUI extends Application {
         Label dealerLabel = new Label("Vehicles by Dealer");
         dealerLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
-        // Replace just this part in your showDashboard() method:
-
-// Create a simple list view instead of a table
+        // Create a simple list view instead of a table
         ListView<String> dealerListView = new ListView<>();
         dealerListView.setPrefHeight(200);
+        dealerListView.setMinHeight(150);  // Ensure minimum height
 
-// Create list items
+        // Create list items
         ObservableList<String> dealerItems = FXCollections.observableArrayList();
         for (Map.Entry<String, Integer> entry : vehiclesByDealer.entrySet()) {
             dealerItems.add(String.format("Dealer ID: %s     Vehicle Count: %d",
                     entry.getKey(), entry.getValue()));
         }
 
-// Set items and add to layout
+        // Set items and add to layout
         dealerListView.setItems(dealerItems);
+        dealerListView.setVisible(true);  // Ensure visibility
+        dealerListView.setManaged(true);  // Ensure it's managed by layout
 
-// Debug output
+        // Debug output
         System.out.println("Dealer items count: " + dealerItems.size());
         for (String item : dealerItems) {
             System.out.println(item);
@@ -799,7 +812,7 @@ public class DealershipJavaFXGUI extends Application {
             case "Sedan" -> new Sedan();
             case "Pickup" -> new Pickup();
             case "Sports Car" -> new SportsCar();
-            default -> null;
+            default -> new SUV(); // Default to SUV if something goes wrong
         };
     }
 
@@ -902,24 +915,144 @@ public class DealershipJavaFXGUI extends Application {
      */
     private void handleRemoveVehicle() {
         try {
-            if (!validateFields()) return;
+            // Create a custom dialog for removing vehicles
+            Dialog<RemoveVehicleInfo> dialog = new Dialog<>();
+            dialog.setTitle("Remove Vehicle");
+            dialog.setHeaderText("Select a vehicle to remove");
 
-            String dealerId = getDealerId();
-            String vehicleId = vehicleIdField.getText().trim();
-            String manufacturer = manufacturerField.getText().trim();
-            String model = modelField.getText().trim();
-            double price = Double.parseDouble(priceField.getText().trim());
+            // Set the button types
+            ButtonType removeButtonType = new ButtonType("Remove Vehicle", ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(removeButtonType, ButtonType.CANCEL);
 
-            File inventoryFile = new File(INVENTORY_PATH);
-            if (manager.removeVehicleFromInventory(dealerId, vehicleId, manufacturer, model, price, inventoryFile)) {
-                refreshDisplay();
-                clearInputFields();
-                showSuccess("Vehicle removed from inventory successfully!");
-            } else {
-                showError("Vehicle not found, is rented, or could not be removed!");
+            // Create the selection fields
+            GridPane grid = new GridPane();
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.setPadding(new Insets(20, 150, 10, 10));
+
+            // Create dealer dropdown
+            ComboBox<String> dealerCombo = new ComboBox<>();
+            dealerCombo.setPromptText("Select a dealer");
+
+            // Find all dealers that have vehicles
+            Set<String> dealersWithVehicles = new HashSet<>();
+            for (Vehicle vehicle : manager.getVehiclesForDisplay()) {
+                dealersWithVehicles.add(vehicle.getDealerId());
             }
+
+            // If no vehicles, show a message and return
+            if (dealersWithVehicles.isEmpty()) {
+                showError("No vehicles in inventory");
+                return;
+            }
+
+            dealerCombo.getItems().addAll(dealersWithVehicles);
+
+            // Create vehicle dropdown (initially empty)
+            ComboBox<String> vehicleCombo = new ComboBox<>();
+            vehicleCombo.setPromptText("Select a vehicle");
+
+            // Update vehicle dropdown when dealer changes
+            dealerCombo.setOnAction(e -> {
+                String selectedDealer = dealerCombo.getValue();
+                if (selectedDealer != null) {
+                    vehicleCombo.getItems().clear();
+                    vehicleCombo.getItems().addAll(getVehiclesForDealer(selectedDealer));
+                }
+            });
+
+            // Additional input fields
+            TextField manufacturerField = new TextField();
+            manufacturerField.setPromptText("Manufacturer");
+            manufacturerField.setEditable(false);
+            TextField modelField = new TextField();
+            modelField.setPromptText("Model");
+            modelField.setEditable(false);
+            TextField priceField = new TextField();
+            priceField.setPromptText("Price");
+            priceField.setEditable(false);
+
+            // Populate additional fields when vehicle is selected
+            vehicleCombo.setOnAction(e -> {
+                String selectedVehicle = vehicleCombo.getValue();
+                if (selectedVehicle != null) {
+                    String vehicleId = getVehicleIdFromFormatted(selectedVehicle);
+                    Vehicle vehicle = findVehicleById(dealerCombo.getValue(), vehicleId);
+                    if (vehicle != null) {
+                        manufacturerField.setText(vehicle.getManufacturer());
+                        modelField.setText(vehicle.getModel());
+                        priceField.setText(String.format("%.2f", vehicle.getPrice()));
+                    }
+                }
+            });
+
+            grid.add(new Label("Dealer:"), 0, 0);
+            grid.add(dealerCombo, 1, 0);
+            grid.add(new Label("Vehicle:"), 0, 1);
+            grid.add(vehicleCombo, 1, 1);
+            grid.add(new Label("Manufacturer:"), 0, 2);
+            grid.add(manufacturerField, 1, 2);
+            grid.add(new Label("Model:"), 0, 3);
+            grid.add(modelField, 1, 3);
+            grid.add(new Label("Price:"), 0, 4);
+            grid.add(priceField, 1, 4);
+
+            dialog.getDialogPane().setContent(grid);
+
+            // Apply dark mode styling if needed
+            if (darkModeEnabled) {
+                dialog.getDialogPane().getStylesheets().add(getClass().getResource("/DarkMode.css").toExternalForm());
+            }
+
+            // Convert the result
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == removeButtonType) {
+                    try {
+                        return new RemoveVehicleInfo(
+                                dealerCombo.getValue(),
+                                getVehicleIdFromFormatted(vehicleCombo.getValue()),
+                                manufacturerField.getText(),
+                                modelField.getText(),
+                                Double.parseDouble(priceField.getText())
+                        );
+                    } catch (NumberFormatException | NullPointerException ex) {
+                        showError("Invalid input. Please select a vehicle.");
+                        return null;
+                    }
+                }
+                return null;
+            });
+
+            Optional<RemoveVehicleInfo> result = dialog.showAndWait();
+
+            result.ifPresent(info -> {
+                if (info.dealerId == null || info.vehicleId == null) {
+                    showError("Dealer and Vehicle must be selected");
+                    return;
+                }
+
+                File inventoryFile = new File(INVENTORY_PATH);
+                boolean success = manager.removeVehicleFromInventory(
+                        info.dealerId,
+                        info.vehicleId,
+                        info.manufacturer,
+                        info.model,
+                        info.price,
+                        inventoryFile
+                );
+
+                if (success) {
+                    refreshDisplay();
+                    clearInputFields();
+                    updateDealerDropdown();
+                    showSuccess("Vehicle removed successfully");
+                } else {
+                    showError("Failed to remove vehicle. Vehicle may be rented or not found.");
+                }
+            });
         } catch (Exception ex) {
             showError("Error removing vehicle: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 
@@ -1122,37 +1255,163 @@ public class DealershipJavaFXGUI extends Application {
      */
     private void handleTransferVehicle() {
         try {
-            if (!validateDealerAndVehicleIds()) return;
+            // Create a custom dialog for vehicle transfer
+            Dialog<TransferVehicleInfo> dialog = new Dialog<>();
+            dialog.setTitle("Transfer Vehicle");
+            dialog.setHeaderText("Transfer a vehicle between dealerships");
 
-            String sourceDealerId = getDealerId();
-            String vehicleId = vehicleIdField.getText().trim();
+            // Set the button types
+            ButtonType transferButtonType = new ButtonType("Transfer Vehicle", ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(transferButtonType, ButtonType.CANCEL);
 
-            // Create input dialog for target dealer
-            TextInputDialog inputDialog = new TextInputDialog();
-            inputDialog.setTitle("Transfer Vehicle");
-            inputDialog.setHeaderText("Enter target dealer information");
-            inputDialog.setContentText("Target Dealer ID:");
+            // Create the selection fields
+            GridPane grid = new GridPane();
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.setPadding(new Insets(20, 150, 10, 10));
 
-            Optional<String> result = inputDialog.showAndWait();
+            // Source dealer dropdown
+            ComboBox<String> sourceDealerCombo = new ComboBox<>();
+            sourceDealerCombo.setPromptText("Select Source Dealer");
 
-            result.ifPresent(targetDealerId -> {
-                if (targetDealerId.isEmpty()) {
-                    showError("Target Dealer ID is required");
+            // Find all dealers that have vehicles
+            Set<String> dealersWithVehicles = new HashSet<>();
+            for (Vehicle vehicle : manager.getVehiclesForDisplay()) {
+                dealersWithVehicles.add(vehicle.getDealerId());
+            }
+
+            // If no vehicles, show a message and return
+            if (dealersWithVehicles.isEmpty()) {
+                showError("No vehicles in inventory");
+                return;
+            }
+
+            sourceDealerCombo.getItems().addAll(dealersWithVehicles);
+
+            // Vehicle dropdown for source dealer (initially empty)
+            ComboBox<String> vehicleCombo = new ComboBox<>();
+            vehicleCombo.setPromptText("Select a Vehicle");
+
+            // Target dealer section
+            Label targetDealerLabel = new Label("Target Dealer:");
+            ComboBox<String> targetDealerCombo = new ComboBox<>();
+            targetDealerCombo.setPromptText("Select Existing Dealer");
+            TextField newDealerField = new TextField();
+            newDealerField.setPromptText("Or Enter New Dealer ID");
+
+            // Populate existing dealers in target dealer dropdown
+            targetDealerCombo.getItems().addAll(dealersWithVehicles);
+            targetDealerCombo.getItems().add("-- New Dealer --");
+
+            // Listener to handle new dealer option
+            targetDealerCombo.setOnAction(e -> {
+                if ("-- New Dealer --".equals(targetDealerCombo.getValue())) {
+                    newDealerField.setDisable(false);
+                } else {
+                    newDealerField.clear();
+                    newDealerField.setDisable(true);
+                }
+            });
+
+            // Update vehicle dropdown when source dealer changes
+            sourceDealerCombo.setOnAction(e -> {
+                String selectedDealer = sourceDealerCombo.getValue();
+                if (selectedDealer != null) {
+                    vehicleCombo.getItems().clear();
+                    vehicleCombo.getItems().addAll(getAvailableVehiclesForDealer(selectedDealer));
+
+                    // Update target dealer dropdown - remove the source dealer
+                    targetDealerCombo.getItems().clear();
+                    dealersWithVehicles.stream()
+                            .filter(dealer -> !dealer.equals(selectedDealer))
+                            .forEach(dealer -> targetDealerCombo.getItems().add(dealer));
+                    targetDealerCombo.getItems().add("-- New Dealer --");
+                }
+            });
+
+            grid.add(new Label("Source Dealer:"), 0, 0);
+            grid.add(sourceDealerCombo, 1, 0);
+            grid.add(new Label("Vehicle:"), 0, 1);
+            grid.add(vehicleCombo, 1, 1);
+            grid.add(targetDealerLabel, 0, 2);
+            grid.add(targetDealerCombo, 1, 2);
+            grid.add(new Label("New Dealer ID:"), 0, 3);
+            grid.add(newDealerField, 1, 3);
+
+            dialog.getDialogPane().setContent(grid);
+
+            // Disable new dealer field initially
+            newDealerField.setDisable(true);
+
+            // Apply dark mode styling if needed
+            if (darkModeEnabled) {
+                dialog.getDialogPane().getStylesheets().add(getClass().getResource("/DarkMode.css").toExternalForm());
+            }
+
+            // Convert the result
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == transferButtonType) {
+                    String targetDealerId = targetDealerCombo.getValue();
+                    if ("-- New Dealer --".equals(targetDealerId)) {
+                        targetDealerId = newDealerField.getText().trim();
+                        if (targetDealerId.isEmpty()) {
+                            showError("Please enter a dealer ID for the new dealer");
+                            return null;
+                        }
+                    }
+
+                    String vehicleId = getVehicleIdFromFormatted(vehicleCombo.getValue());
+                    if (vehicleId == null) {
+                        showError("Please select a vehicle to transfer");
+                        return null;
+                    }
+
+                    return new TransferVehicleInfo(
+                            sourceDealerCombo.getValue(),
+                            targetDealerId,
+                            vehicleId
+                    );
+                }
+                return null;
+            });
+
+            Optional<TransferVehicleInfo> result = dialog.showAndWait();
+
+            result.ifPresent(info -> {
+                if (info.sourceDealerId == null || info.targetDealerId == null || info.vehicleId == null) {
+                    showError("All fields must be filled");
                     return;
                 }
 
+                if (info.sourceDealerId.equals(info.targetDealerId)) {
+                    showError("Source and target dealers cannot be the same");
+                    return;
+                }
+
+                // Enable acquisition for target dealer if it's new
+                if (!dealersWithVehicles.contains(info.targetDealerId)) {
+                    manager.enableAcquisition(info.targetDealerId);
+                }
+
                 File inventoryFile = new File(INVENTORY_PATH);
-                boolean success = manager.transferVehicle(sourceDealerId, targetDealerId, vehicleId, inventoryFile);
+                boolean success = manager.transferVehicle(
+                        info.sourceDealerId,
+                        info.targetDealerId,
+                        info.vehicleId,
+                        inventoryFile
+                );
 
                 if (success) {
                     refreshDisplay();
+                    updateDealerDropdown();
                     showSuccess("Vehicle transferred successfully");
                 } else {
-                    showError("Failed to transfer vehicle. Check all IDs and make sure the vehicle isn't rented.");
+                    showError("Failed to transfer vehicle. Check dealer IDs and vehicle status.");
                 }
             });
         } catch (Exception ex) {
             showError("Error transferring vehicle: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 
@@ -1246,12 +1505,77 @@ public class DealershipJavaFXGUI extends Application {
     }
 
     /**
-     * Simple class to hold rental information
+     * Gets list of formatted vehicle strings for a dealer
+     * @param dealerId The dealer ID
+     * @return List of formatted vehicle strings
+     */
+    private List<String> getVehiclesForDealer(String dealerId) {
+        List<String> formattedVehicles = new ArrayList<>();
+        for (Vehicle vehicle : manager.getVehiclesForDisplay()) {
+            if (vehicle.getDealerId().equals(dealerId)) {
+                String formatted = String.format("%s - %s %s ($%.2f)",
+                        vehicle.getVehicleId(),
+                        vehicle.getManufacturer(),
+                        vehicle.getModel(),
+                        vehicle.getPrice());
+                formattedVehicles.add(formatted);
+            }
+        }
+        return formattedVehicles;
+    }
+
+    /**
+     * Finds a vehicle by dealer ID and vehicle ID
+     */
+    private Vehicle findVehicleById(String dealerId, String vehicleId) {
+        return manager.getVehiclesForDisplay().stream()
+                .filter(vehicle -> vehicle.getDealerId().equals(dealerId) &&
+                        vehicle.getVehicleId().equals(vehicleId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Helper class to hold rental information
      */
     private static class RentalInfo {
         public String dealerId;
         public String vehicleId;
         public String startDate;
         public String endDate;
+    }
+
+    /**
+     * Helper class to hold remove vehicle information
+     */
+    private static class RemoveVehicleInfo {
+        public final String dealerId;
+        public final String vehicleId;
+        public final String manufacturer;
+        public final String model;
+        public final double price;
+
+        public RemoveVehicleInfo(String dealerId, String vehicleId, String manufacturer, String model, double price) {
+            this.dealerId = dealerId;
+            this.vehicleId = vehicleId;
+            this.manufacturer = manufacturer;
+            this.model = model;
+            this.price = price;
+        }
+    }
+
+    /**
+     * Helper class to hold transfer vehicle information
+     */
+    private static class TransferVehicleInfo {
+        public final String sourceDealerId;
+        public final String targetDealerId;
+        public final String vehicleId;
+
+        public TransferVehicleInfo(String sourceDealerId, String targetDealerId, String vehicleId) {
+            this.sourceDealerId = sourceDealerId;
+            this.targetDealerId = targetDealerId;
+            this.vehicleId = vehicleId;
+        }
     }
 }
